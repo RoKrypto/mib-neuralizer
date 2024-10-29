@@ -25,7 +25,7 @@ flashBtn.addEventListener('click', async () => {
             setTimeout(async () => {
                 await track.applyConstraints({ advanced: [{ torch: false }] });
                 track.stop(); // Stop using the camera
-            }, 1000);
+            }, 250);
         } else {
             alert('Flashlight control is not supported on this device or browser.');
         }
