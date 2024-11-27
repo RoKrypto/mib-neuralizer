@@ -1,0 +1,21 @@
+{
+    "name": "Men In Black Neuralizer",
+    "short_name": "MIB Neuralizer",
+    "description": "A fun, interactive web-based neuralizer inspired by Men In Black.",
+    "start_url": "./",
+    "display": "standalone",
+    "background_color": "#000000",
+    "theme_color": "#000000",
+    "icons": [
+      {
+        "src": "./assets/img/favicon-light-mode.svg",
+        "sizes": "192x192",
+        "type": "image/svg+xml"
+      },
+      {
+        "src": "./assets/img/favicon-dark-mode.svg",
+        "sizes": "512x512",
+        "type": "image/svg+xml"
+      }
+    ]
+}
