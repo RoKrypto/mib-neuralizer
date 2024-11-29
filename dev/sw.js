@@ -1,5 +1,4 @@
-// Define cache names
-const CACHE_NAME = 'mib-neuralizer-v1'; // Increment this if you make changes to assets.
+const CACHE_NAME = 'mib-neuralizer-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -16,53 +15,79 @@ const ASSETS_TO_CACHE = [
 
 // Install event: Precaching static assets
 self.addEventListener('install', event => {
-  console.log('[Service Worker] Installing...');
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log('[Service Worker] Precaching assets...');
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
+    (async () => {
+      console.log('[Service Worker] Installing...');
+      const cache = await caches.open(CACHE_NAME);
+      try {
+        console.log('[Service Worker] Precaching assets...');
+        await cache.addAll(ASSETS_TO_CACHE);
+        console.log('[Service Worker] All assets cached!');
+      } catch (err) {
+        console.error('[Service Worker] Precaching failed:', err);
+      }
+    })()
   );
 });
 
 // Activate event: Clean up old caches
 self.addEventListener('activate', event => {
-  console.log('[Service Worker] Activating...');
   event.waitUntil(
-    caches.keys().then(cacheNames =>
-      Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log(`[Service Worker] Deleting old cache: ${cacheName}`);
-            return caches.delete(cacheName);
-          }
-        })
-      )
-    )
+    (async () => {
+      console.log('[Service Worker] Activating...');
+      const cacheNames = await caches.keys();
+      for (const cacheName of cacheNames) {
+        if (cacheName !== CACHE_NAME) {
+          console.log(`[Service Worker] Deleting old cache: ${cacheName}`);
+          await caches.delete(cacheName);
+        }
+      }
+      await self.clients.claim(); // Take control of clients immediately
+      console.log('[Service Worker] Activation complete.');
+    })()
   );
-  return self.clients.claim(); // Take control of all clients immediately
 });
 
-// Fetch event: Network-first with cache fallback
+// Fetch event: Serve cached assets and handle special cases
 self.addEventListener('fetch', event => {
-  console.log(`[Service Worker] Fetching: ${event.request.url}`);
   event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        // Save a copy of the network response in the cache
-        return caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, response.clone());
-          return response;
-        });
-      })
-      .catch(() => {
-        // Return cached response if network fails
-        return caches.match(event.request).then(cachedResponse => {
+    (async () => {
+      const requestUrl = new URL(event.request.url);
+
+      // Handle special case for neuralizer.mp3
+      if (requestUrl.pathname === '/assets/sound/neuralizer.mp3') {
+        try {
+          const cachedResponse = await caches.match('./assets/sound/neuralizer.mp3');
           if (cachedResponse) {
+            console.log('[Service Worker] Serving neuralizer.mp3 from cache.');
             return cachedResponse;
           }
-          // Optionally, you can define a fallback for uncacheable requests
-        });
-      })
+          console.log('[Service Worker] neuralizer.mp3 not found in cache, fetching from network...');
+          return await fetch(event.request);
+        } catch (err) {
+          console.error('[Service Worker] Fetch failed for neuralizer.mp3:', err);
+        }
+      }
+
+      // Default caching strategy: Network-first with cache fallback
+      try {
+        const networkResponse = await fetch(event.request);
+        const cache = await caches.open(CACHE_NAME);
+
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          console.log(`[Service Worker] Caching response for: ${event.request.url}`);
+          cache.put(event.request, networkResponse.clone());
+        }
+        return networkResponse;
+      } catch (err) {
+        console.error(`[Service Worker] Network error for: ${event.request.url}`, err);
+        const cachedResponse = await caches.match(event.request);
+        if (cachedResponse) {
+          console.log(`[Service Worker] Serving from cache: ${event.request.url}`);
+          return cachedResponse;
+        }
+        // Optionally provide a fallback response
+      }
+    })()
   );
 });
