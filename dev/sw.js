@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mib-neuralizer-v2';
+const CACHE_NAME = 'mib-neuralizer-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -6,7 +6,6 @@ const ASSETS_TO_CACHE = [
   './assets/img/base.png',
   './assets/img/buttons.png',
   './assets/img/favicon-dark-mode.svg',
-  './assets/img/favicon-light-mode.svg',
   './assets/img/head.png',
   'https://rokrypto.github.io/mib-neuralizer/assets/img/men-in-black-neuralizer-rokrypto.jpg',
   './assets/js/scripts.min.js',
