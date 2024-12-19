@@ -1,5 +1,5 @@
 // Define the cache name
-const CACHE_NAME = 'mib-neuralizer-v2';
+const CACHE_NAME = 'mib-neuralizer-v3';
 
 // List of resources to pre-cache
 const ASSETS_TO_CACHE = [
@@ -53,16 +53,22 @@ self.addEventListener('activate', (event) => {
 // Fetch event: Cache First with Network Fallback
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  // Particular handle for the audio
-  if (url.pathname.endsWith('neuralizer.mp3')) {
+
+  if (url.pathname.endsWith('.mp3')) {
     event.respondWith(
       (async () => {
         try {
+          // Check if it's a range request
+          if (event.request.headers.get('range')) {
+            // Bypass the cache for range requests
+            return await fetch(event.request);
+          }
+
+          // Handle non-range requests (cache-first strategy)
           const cache = await caches.open(CACHE_NAME);
           const cachedResponse = await cache.match(event.request);
-
           if (cachedResponse) {
-            return cachedResponse; // Serve from cache
+            return cachedResponse;
           }
 
           const networkResponse = await fetch(event.request);
