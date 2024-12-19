@@ -1,5 +1,5 @@
 // Define the cache name
-const CACHE_NAME = 'mib-neuralizer-v1';
+const CACHE_NAME = 'mib-neuralizer-v2';
 
 // List of resources to pre-cache
 const ASSETS_TO_CACHE = [
@@ -52,23 +52,46 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event: Cache First with Network Fallback
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    (async () => {
-      try {
-        const cachedResponse = await caches.match(event.request);
-        if (cachedResponse) {
-          return cachedResponse; // Serve from cache
-        }
+  const url = new URL(event.request.url);
+  // Particular handle for the audio
+  if (url.pathname.endsWith('neuralizer.mp3')) {
+    event.respondWith(
+      (async () => {
+        try {
+          const cache = await caches.open(CACHE_NAME);
+          const cachedResponse = await cache.match(event.request);
 
-        // Fallback to network
-        const networkResponse = await fetch(event.request);
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(event.request, networkResponse.clone());
-        return networkResponse;
-      } catch (error) {
-        console.error('Failed to fetch resource:', error);
-        throw error; // Re-throw error to propagate
-      }
-    })()
-  );
+          if (cachedResponse) {
+            return cachedResponse; // Serve from cache
+          }
+
+          const networkResponse = await fetch(event.request);
+          await cache.put(event.request, networkResponse.clone());
+          return networkResponse;
+        } catch (error) {
+          console.error('Failed to fetch or cache the audio file:', error);
+          throw error;
+        }
+      })()
+    );
+  } else {
+    // Handle other requests as usual
+    event.respondWith(
+      (async () => {
+        try {
+          const cachedResponse = await caches.match(event.request);
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          const networkResponse = await fetch(event.request);
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(event.request, networkResponse.clone());
+          return networkResponse;
+        } catch (error) {
+          console.error('Fetch failed:', error);
+          throw error;
+        }
+      })()
+    );
+  }
 });
